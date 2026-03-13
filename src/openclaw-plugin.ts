@@ -57,6 +57,11 @@ interface OpenClawPluginApi {
     handler: (...args: unknown[]) => unknown,
     meta: { name: string; description: string },
   ): void;
+  /**
+   * Register a typed lifecycle hook.
+   * Supported names: "session_start", "before_compaction", "after_compaction",
+   * "before_prompt_build", "before_agent_start"
+   */
   on(
     event: string,
     handler: (...args: unknown[]) => unknown,
@@ -89,6 +94,13 @@ interface ContextEngineInstance {
     estimatedTokens: number;
   }>;
   compact(): Promise<{ ok: boolean; compacted: boolean }>;
+}
+
+/** Shape of the event OpenClaw passes to session_start hook. */
+interface SessionStartEvent {
+  sessionId?: string;
+  agentId?: string;
+  startedAt?: string;
 }
 
 /** Shape of the event object OpenClaw passes to tool_call hooks. */
@@ -155,7 +167,8 @@ export default {
 
     // Initialize session synchronously (SessionDB constructor is sync)
     const db = new SessionDB({ dbPath: getDBPath(projectDir) });
-    const sessionId = randomUUID();
+    let sessionId = randomUUID();
+    let resumeInjected = false;
     db.ensureSession(sessionId, projectDir);
     db.cleanupOldSessions(0);
 
