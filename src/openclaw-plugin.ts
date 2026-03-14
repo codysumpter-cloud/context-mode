@@ -546,20 +546,29 @@ export default {
         return { messages, estimatedTokens: 0 };
       },
 
-      async compact() {
+      async compact({ currentTokenCount }: { currentTokenCount?: number } = {}) {
         try {
-          const events = db.getEvents(sessionId);
+          const sid = sessionId;
+          const events = db.getEvents(sid);
           if (events.length === 0) return { ok: true, compacted: false };
 
-          const stats = db.getSessionStats(sessionId);
-          const snapshot = buildResumeSnapshot(events, {
-            compactCount: (stats?.compact_count ?? 0) + 1,
-          });
+          const stats = db.getSessionStats(sid);
+          const compactCount = (stats?.compact_count ?? 0) + 1;
+          const snapshot = buildResumeSnapshot(events, { compactCount });
 
-          db.upsertResume(sessionId, snapshot, events.length);
-          db.incrementCompactCount(sessionId);
+          db.upsertResume(sid, snapshot, events.length);
+          db.incrementCompactCount(sid);
 
-          return { ok: true, compacted: true };
+          return {
+            ok: true,
+            compacted: true,
+            result: {
+              summary: snapshot,
+              firstKeptEntryId: "",   // clear all history before this compaction
+              tokensBefore: currentTokenCount ?? 0,
+              tokensAfter: 0,
+            },
+          };
         } catch {
           return { ok: false, compacted: false };
         }
