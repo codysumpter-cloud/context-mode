@@ -1125,9 +1125,36 @@ server.registerTool(
         .describe(
           "Label for the indexed content (e.g., 'React useEffect docs', 'Supabase Auth API')",
         ),
+      force: z
+        .boolean()
+        .optional()
+        .describe("Skip cache and re-fetch even if content was recently indexed"),
     }),
   },
-  async ({ url, source }) => {
+  async ({ url, source, force }) => {
+    // TTL cache: if source was indexed within 24h, return cached hint
+    if (!force) {
+      const store = getStore();
+      const label = source ?? url;
+      const meta = store.getSourceMeta(label);
+      if (meta) {
+        const indexedAt = new Date(meta.indexedAt + "Z"); // SQLite datetime is UTC without Z
+        const ageMs = Date.now() - indexedAt.getTime();
+        const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+        if (ageMs < TTL_MS) {
+          const ageHours = Math.floor(ageMs / (60 * 60 * 1000));
+          const ageMin = Math.floor(ageMs / (60 * 1000));
+          const ageStr = ageHours > 0 ? `${ageHours}h ago` : ageMin > 0 ? `${ageMin}m ago` : "just now";
+          return trackResponse("ctx_fetch_and_index", {
+            content: [{
+              type: "text" as const,
+              text: `Cached: **${meta.label}** — ${meta.chunkCount} sections, indexed ${ageStr} (fresh, TTL: 24h).\nTo refresh: call ctx_fetch_and_index again with \`force: true\`.\n\nYou MUST call search() to answer questions about this content — this cached response contains no content.\nUse: search(queries: [...], source: "${meta.label}")`,
+            }],
+          });
+        }
+        // Stale (>24h) — fall through to re-fetch silently
+      }
+    }
     // Generate a unique temp file path for the subprocess to write fetched content.
     // This bypasses the executor's 100KB stdout truncation — content goes file→handler directly.
     const outputPath = join(tmpdir(), `ctx-fetch-${Date.now()}-${Math.random().toString(36).slice(2)}.dat`);

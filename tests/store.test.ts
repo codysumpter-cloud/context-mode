@@ -1111,3 +1111,44 @@ describe("Content-Type Routing", () => {
     store.close();
   });
 });
+
+// ── Source metadata & TTL cache ───────────────────────────────────────
+
+describe("Source metadata (TTL cache)", () => {
+  test("getSourceMeta returns null for unknown source", () => {
+    const store = createStore();
+    const meta = store.getSourceMeta("nonexistent-source");
+    expect(meta).toBeNull();
+    store.close();
+  });
+
+  test("getSourceMeta returns metadata after indexing", () => {
+    const store = createStore();
+    store.index({ content: "# Hello\nWorld", source: "test-doc" });
+    const meta = store.getSourceMeta("test-doc");
+    expect(meta).not.toBeNull();
+    expect(meta!.label).toBe("test-doc");
+    expect(meta!.chunkCount).toBeGreaterThan(0);
+    expect(meta!.indexedAt).toBeTruthy();
+    store.close();
+  });
+
+  test("getSourceMeta indexedAt is valid datetime", () => {
+    const store = createStore();
+    store.index({ content: "# Test\nContent here", source: "datetime-test" });
+    const meta = store.getSourceMeta("datetime-test");
+    const parsed = new Date(meta!.indexedAt);
+    expect(parsed.getTime()).not.toBeNaN();
+    store.close();
+  });
+
+  test("getSourceMeta updates after re-indexing same source", () => {
+    const store = createStore();
+    store.index({ content: "# V1\nFirst version", source: "evolving-doc" });
+    const meta1 = store.getSourceMeta("evolving-doc");
+    store.index({ content: "# V2\nSecond version\n## Extra\nMore content", source: "evolving-doc" });
+    const meta2 = store.getSourceMeta("evolving-doc");
+    expect(meta2!.chunkCount).toBeGreaterThanOrEqual(meta1!.chunkCount);
+    store.close();
+  });
+});

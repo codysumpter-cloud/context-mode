@@ -221,6 +221,7 @@ export class ContentStore {
   #stmtSourceChunkCount!: PreparedStatement;
   #stmtChunkContent!: PreparedStatement;
   #stmtStats!: PreparedStatement;
+  #stmtSourceMeta!: PreparedStatement;
 
   constructor(dbPath?: string) {
     const Database = loadDatabase();
@@ -443,6 +444,9 @@ export class ContentStore {
     );
     this.#stmtChunkContent = this.#db.prepare(
       "SELECT content FROM chunks WHERE source_id = ?",
+    );
+    this.#stmtSourceMeta = this.#db.prepare(
+      "SELECT label, chunk_count, code_chunk_count, indexed_at FROM sources WHERE label = ?",
     );
     this.#stmtStats = this.#db.prepare(`
       SELECT
@@ -813,6 +817,12 @@ export class ContentStore {
   }
 
   // ── Sources ──
+
+  getSourceMeta(label: string): { label: string; chunkCount: number; codeChunkCount: number; indexedAt: string } | null {
+    const row = this.#stmtSourceMeta.get(label) as { label: string; chunk_count: number; code_chunk_count: number; indexed_at: string } | undefined;
+    if (!row) return null;
+    return { label: row.label, chunkCount: row.chunk_count, codeChunkCount: row.code_chunk_count, indexedAt: row.indexed_at };
+  }
 
   listSources(): Array<{ label: string; chunkCount: number }> {
     return this.#stmtListSources.all() as Array<{
