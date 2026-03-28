@@ -410,6 +410,8 @@ export function formatBatchQueryResults(
     sections.push("");
   }
 
+  sections.push(`\n> **Tip:** Results are scoped to this batch only. To search across all indexed sources, use \`ctx_search(queries: [...])\`.`);
+
   return sections;
 }
 
