@@ -17,6 +17,14 @@
  */
 
 import { createHash } from "node:crypto";
+
+/** Strip JSONC comments (// and /* *​/) and trailing commas for JSON.parse. */
+function stripJsonComments(str: string): string {
+  return str
+    .replace(/\/\/.*$/gm, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/,(\s*[}\]])/g, "$1");
+}
 import {
   readFileSync,
   writeFileSync,
@@ -230,8 +238,11 @@ export class OpenCodeAdapter implements HookAdapter {
     }
     return [
       resolve("opencode.json"),
+      resolve("opencode.jsonc"),
       resolve(".opencode", "opencode.json"),
+      resolve(".opencode", "opencode.jsonc"),
       join(homedir(), ".config", "opencode", "opencode.json"),
+      join(homedir(), ".config", "opencode", "opencode.jsonc"),
     ];
   }
 
@@ -307,7 +318,8 @@ export class OpenCodeAdapter implements HookAdapter {
       try {
         const raw = readFileSync(configPath, "utf-8");
         this.settingsPath = configPath;
-        return JSON.parse(raw) as Record<string, unknown>;
+        const text = configPath.endsWith(".jsonc") ? stripJsonComments(raw) : raw;
+        return JSON.parse(text) as Record<string, unknown>;
       } catch {
         continue;
       }
@@ -334,7 +346,7 @@ export class OpenCodeAdapter implements HookAdapter {
       results.push({
         check: "Plugin configuration",
         status: "fail",
-        message: "Could not read opencode.json",
+        message: `Could not read ${this.platform}.json or ${this.platform}.jsonc`,
         fix: "context-mode upgrade",
       });
       return results;
@@ -380,7 +392,7 @@ export class OpenCodeAdapter implements HookAdapter {
       return {
         check: "Plugin registration",
         status: "warn",
-        message: "Could not read opencode.json",
+        message: `Could not read ${this.platform}.json or ${this.platform}.jsonc`,
       };
     }
 
