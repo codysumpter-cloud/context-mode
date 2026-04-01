@@ -50,9 +50,20 @@ For every task:
 | "review PR #N", "merge PR", "check PR" | Review | [review-pr.md](review-pr.md) |
 | "release", "version bump", "publish" | Release | [release.md](release.md) |
 
+## GitHub CLI (`gh`) Is Mandatory
+
+<gh_enforcement>
+ALL GitHub operations MUST use the `gh` CLI. Never use raw git commands for GitHub interactions.
+Never use curl/wget to GitHub API. `gh` handles auth, pagination, and rate limits correctly.
+</gh_enforcement>
+
+- `gh issue view`, `gh issue comment`, `gh issue close` — for issues
+- `gh pr view`, `gh pr diff`, `gh pr merge --squash`, `gh pr edit --base next` — for PRs
+- `gh release create` — for releases
+
 ## Agent Spawning Protocol
 
-1. Read issue/PR body + comments + diff first
+1. Read issue/PR body + comments + diff via `gh` (through agent)
 2. Identify affected: adapters, OS, core modules
 3. Build agent roster from [agent-teams.md](agent-teams.md) — context-driven, not static
 4. Spawn ALL agents in ONE message with multiple `Agent` tool calls
@@ -67,6 +78,13 @@ Before shipping ANY change, validate per [validation.md](validation.md):
 - [ ] TypeScript compiles: `npm run typecheck`
 - [ ] Full test suite: `npm test`
 - [ ] Cross-OS path handling checked
+
+## Docs Must Stay Current
+
+After ANY code change that affects adapters, features, or platform support:
+- [ ] Update `docs/platform-support.md` if adapter capabilities changed
+- [ ] Update `README.md` if install instructions, features, or platform list changed
+- [ ] These updates are NOT optional — ship docs with code, not after
 
 ## Communication (Every Workflow)
 
