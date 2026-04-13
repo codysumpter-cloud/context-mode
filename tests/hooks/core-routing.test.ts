@@ -17,6 +17,7 @@ let routePreToolUse: (
 
 let resetGuidanceThrottle: () => void;
 let ROUTING_BLOCK: string;
+let createRoutingBlock: (t: any, options?: { includeCommands?: boolean }) => string;
 let READ_GUIDANCE: string;
 let GREP_GUIDANCE: string;
 
@@ -27,6 +28,7 @@ beforeAll(async () => {
 
   const constants = await import("../../hooks/routing-block.mjs");
   ROUTING_BLOCK = constants.ROUTING_BLOCK;
+  createRoutingBlock = constants.createRoutingBlock;
   READ_GUIDANCE = constants.READ_GUIDANCE;
   GREP_GUIDANCE = constants.GREP_GUIDANCE;
 });
@@ -329,6 +331,40 @@ describe("routePreToolUse", () => {
       try { unlinkSync(mcpSentinel); } catch {}
       const result = routePreToolUse("Bash", { command: "./gradlew build" });
       expect(result).toBeNull();
+    });
+  });
+
+  // ─── Subagent ctx_commands omission (#233) ──────────────
+
+  describe("Subagent ctx_commands omission (#233)", () => {
+    it("Agent subagent prompt omits ctx_commands", () => {
+      const result = routePreToolUse("Agent", {
+        prompt: "Search the codebase",
+        subagent_type: "general-purpose",
+      });
+      expect(result).not.toBeNull();
+      expect(result!.action).toBe("modify");
+      const prompt = (result!.updatedInput as Record<string, string>).prompt;
+      expect(prompt).not.toContain("<ctx_commands>");
+      expect(prompt).toContain("<tool_selection_hierarchy>");
+    });
+
+    it("ROUTING_BLOCK constant includes ctx_commands for main session", () => {
+      expect(ROUTING_BLOCK).toContain("<ctx_commands>");
+      expect(ROUTING_BLOCK).toContain("ctx stats");
+    });
+
+    it("createRoutingBlock with includeCommands: false omits section", () => {
+      const t = (name: string) => `mcp__test__${name}`;
+      const block = createRoutingBlock(t, { includeCommands: false });
+      expect(block).not.toContain("<ctx_commands>");
+      expect(block).toContain("<tool_selection_hierarchy>");
+    });
+
+    it("createRoutingBlock default includes ctx_commands", () => {
+      const t = (name: string) => `mcp__test__${name}`;
+      const block = createRoutingBlock(t);
+      expect(block).toContain("<ctx_commands>");
     });
   });
 

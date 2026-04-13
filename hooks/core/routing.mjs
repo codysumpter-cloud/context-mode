@@ -295,16 +295,19 @@ export function routePreToolUse(toolName, toolInput, projectDir, platform) {
   }
 
   // ─── Agent: inject context-mode routing into subagent prompts ───
+  // Subagents cannot use ctx commands (stats/doctor/upgrade/purge) — omit that section (#233)
   if (canonical === "Agent") {
     const subagentType = toolInput.subagent_type ?? "";
     // Detect the correct field name for the prompt/request/objective/question/query
     const fieldName = ["prompt", "request", "objective", "question", "query", "task"].find(f => f in toolInput) ?? "prompt";
     const prompt = toolInput[fieldName] ?? "";
 
+    const subagentBlock = createRoutingBlock(t, { includeCommands: false });
+
     const updatedInput =
       subagentType === "Bash"
-        ? { ...toolInput, [fieldName]: prompt + routingBlock, subagent_type: "general-purpose" }
-        : { ...toolInput, [fieldName]: prompt + routingBlock };
+        ? { ...toolInput, [fieldName]: prompt + subagentBlock, subagent_type: "general-purpose" }
+        : { ...toolInput, [fieldName]: prompt + subagentBlock };
 
     return { action: "modify", updatedInput };
   }
