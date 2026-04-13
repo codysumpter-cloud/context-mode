@@ -122,8 +122,8 @@ code{font-family:var(--mono);font-size:.88em;background:var(--bg-code);color:var
 
 /* ── Availability ── */
 .avail{position:relative;display:inline-flex;align-items:center;gap:5px;cursor:default}
-.avail .dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}
-.avail .dot::after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;background:var(--green);animation:ping 1.5s cubic-bezier(0,0,.2,1) infinite}
+.avail .dot{position:relative;width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}
+.avail .dot::after{content:'';position:absolute;top:0;left:0;width:6px;height:6px;border-radius:50%;background:var(--green);animation:ping 1.5s cubic-bezier(0,0,.2,1) infinite}
 @keyframes ping{75%,100%{transform:scale(2);opacity:0}}
 .avail-tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);font-size:12px;line-height:1.5;padding:10px 14px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s}
 .avail-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--text)}
